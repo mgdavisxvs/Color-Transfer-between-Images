@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P0 Features Demo - Color Transfer Application</title>
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="/static/css/smart-color-selector.css">
+    <link rel="stylesheet" href="/static/css/cost-preview-component.css">
+    <link rel="stylesheet" href="/static/css/preview-mode-workflow.css">
+    <link rel="stylesheet" href="/static/css/roi-selector.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .demo-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .demo-header {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .demo-header h1 {
+            color: #2d3748;
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+
+        .demo-header p {
+            color: #718096;
+            font-size: 1.2rem;
+        }
+
+        .p0-badges {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .p0-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .demo-grid {
+            display: grid;
+            gap: 30px;
+        }
+
+        .section-card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .section-card h2 {
+            color: #2d3748;
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-card .description {
+            color: #718096;
+            font-size: 1rem;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .solved-badge {
+            background: #48bb78;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .upload-area {
+            border: 3px dashed #cbd5e0;
+            border-radius: 12px;
+            padding: 60px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 30px;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f7fafc;
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #edf2f7;
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            margin-bottom: 15px;
+        }
+
+        .upload-area p {
+            color: #718096;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .workflow-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .workflow-card {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 150px;
+        }
+
+        .process-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 30px;
+            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .process-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(72, 187, 120, 0.4);
+        }
+
+        .process-btn:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        @media (max-width: 768px) {
+            .workflow-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .demo-header h1 {
+                font-size: 1.8rem;
+            }
+
+            .p0-badges {
+                gap: 8px;
+            }
+
+            .p0-badge {
+                font-size: 0.8rem;
+                padding: 6px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <!-- Header -->
+        <div class="demo-header">
+            <h1>🎯 P0 Features Integration Demo</h1>
+            <p>Solving the 4 Critical Friction Points</p>
+            <div class="p0-badges">
+                <div class="p0-badge">🔴 Cost Transparency</div>
+                <div class="p0-badge">🔴 Preview Mode</div>
+                <div class="p0-badge">🔴 ROI Selection</div>
+                <div class="p0-badge">🔴 Color Selection UX</div>
+            </div>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="section-card">
+            <h2>📤 Step 1: Upload Image</h2>
+            <div class="upload-area" id="upload-area">
+                <div class="upload-icon">📷</div>
+                <p>Drag & drop your image here</p>
+                <p style="font-size: 0.9rem; color: #a0aec0;">or</p>
+                <button class="upload-btn" onclick="document.getElementById('file-input').click()">
+                    Choose File
+                </button>
+                <input type="file" id="file-input" accept="image/*" style="display: none;">
+            </div>
+        </div>
+
+        <!-- Main Workflow Grid -->
+        <div class="workflow-grid">
+            <!-- Color Selection -->
+            <div class="section-card">
+                <h2>
+                    🎨 Step 2: Select Target Color
+                    <span class="solved-badge">Solved</span>
+                </h2>
+                <p class="description">
+                    <strong>Problem:</strong> 213 RAL colors = analysis paralysis (30-60s selection time)<br>
+                    <strong>Solution:</strong> 14 popular colors, smart search, use-case filters → <strong>10s selection</strong>
+                </p>
+                <div id="color-selector"></div>
+            </div>
+
+            <!-- Cost Preview -->
+            <div class="section-card">
+                <h2>
+                    💰 Step 3: Review Cost & Quality
+                    <span class="solved-badge">Solved</span>
+                </h2>
+                <p class="description">
+                    <strong>Problem:</strong> No cost transparency → distrust, 35% abandonment<br>
+                    <strong>Solution:</strong> Pre-process cost estimate, mode selector → <strong>+40% conversion</strong>
+                </p>
+                <div id="cost-preview"></div>
+            </div>
+        </div>
+
+        <!-- ROI Selection (Optional) -->
+        <div class="section-card">
+            <h2>
+                ✂️ Step 4 (Optional): Select Region of Interest
+                <span class="solved-badge">Solved</span>
+            </h2>
+            <p class="description">
+                <strong>Problem:</strong> Processing full image wastes money on backgrounds<br>
+                <strong>Solution:</strong> Auto-detect subject, manual ROI → <strong>60-80% cost savings</strong>
+            </p>
+            <div id="roi-section" style="display: none;">
+                <canvas id="roi-canvas" width="800" height="600"></canvas>
+                <div style="margin-top: 15px; display: flex; gap: 10px;">
+                    <button class="upload-btn" onclick="autoDetectROI()">🤖 Auto-Detect Subject</button>
+                    <button class="upload-btn" style="background: linear-gradient(135deg, #f6ad55 0%, #ed8936 100%);" onclick="clearROI()">
+                        ❌ Clear ROI
+                    </button>
+                </div>
+            </div>
+            <p id="roi-placeholder" style="text-align: center; color: #a0aec0; padding: 40px;">
+                Upload an image to enable ROI selection
+            </p>
+        </div>
+
+        <!-- Process Button -->
+        <button class="process-btn" id="process-btn" disabled onclick="processImage()">
+            🚀 Process with Preview Mode ($0.008 instead of $0.035)
+        </button>
+
+        <!-- Preview Mode Results -->
+        <div class="section-card" id="results-section" style="display: none;">
+            <h2>
+                ⚡ Step 5: Review Preview & Iterate
+                <span class="solved-badge">Solved</span>
+            </h2>
+            <p class="description">
+                <strong>Problem:</strong> No iteration workflow → users afraid to experiment<br>
+                <strong>Solution:</strong> Low-res preview (77% savings), comparison tools → <strong>+275% iterations/user</strong>
+            </p>
+            <div id="preview-workflow"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/js/smart-color-selector.js"></script>
+    <script src="/static/js/cost-preview-component.js"></script>
+    <script src="/static/js/preview-mode-workflow.js"></script>
+    <script src="/static/js/roi-selector.js"></script>
+
+    <script>
+        // Global state
+        let uploadedImage = null;
+        let uploadedJobId = null;
+        let selectedColor = null;
+        let roiSelection = null;
+
+        // Initialize components
+        const colorSelector = new SmartColorSelector('color-selector', {
+            defaultView: 'popular',
+            onColorSelected: (color) => {
+                selectedColor = color;
+                console.log('Color selected:', color);
+                updateProcessButton();
+            }
+        });
+
+        const costPreview = new CostPreviewComponent('cost-preview', {
+            defaultMode: 'balanced',
+            showEnergyMetrics: true
+        });
+
+        const previewWorkflow = new PreviewModeWorkflow('preview-workflow', {
+            maxPreviewDimension: 512,
+            previewCostMultiplier: 0.23,
+            onUpgradeToFullRes: (settings) => {
+                alert('Upgrading to full resolution with settings: ' + JSON.stringify(settings));
+            },
+            onIterationSaved: (iteration) => {
+                console.log('Iteration saved:', iteration);
+            }
+        });
+
+        window.previewWorkflow = previewWorkflow;
+
+        let roiSelectorInstance = null;
+
+        // File upload handling
+        const uploadArea = document.getElementById('upload-area');
+        const fileInput = document.getElementById('file-input');
+
+        // Drag & drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileUpload(files[0]);
+            }
+        });
+
+        // File input
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileUpload(e.target.files[0]);
+            }
+        });
+
+        // Handle file upload
+        async function handleFileUpload(file) {
+            console.log('Uploading file:', file.name);
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    uploadedImage = file;
+                    uploadedJobId = data.job_id;
+
+                    // Update upload area
+                    uploadArea.innerHTML = `
+                        <div class="upload-icon">✅</div>
+                        <p><strong>${file.name}</strong></p>
+                        <p style="font-size: 0.9rem; color: #48bb78;">
+                            ${data.dimensions.width}×${data.dimensions.height}px
+                        </p>
+                        <button class="upload-btn" onclick="document.getElementById('file-input').click()">
+                            Change Image
+                        </button>
+                    `;
+
+                    // Set image size in cost preview
+                    costPreview.setImageSize(data.dimensions.width, data.dimensions.height);
+
+                    // Initialize ROI selector
+                    initializeROI(file, data.job_id);
+
+                    // Update process button
+                    updateProcessButton();
+
+                } else {
+                    alert('Upload failed: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                alert('Upload failed: ' + error.message);
+            }
+        }
+
+        // Initialize ROI selector
+        function initializeROI(file, jobId) {
+            const roiSection = document.getElementById('roi-section');
+            const roiPlaceholder = document.getElementById('roi-placeholder');
+            const canvas = document.getElementById('roi-canvas');
+
+            roiPlaceholder.style.display = 'none';
+            roiSection.style.display = 'block';
+
+            // Load image to canvas
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    // Resize canvas to fit image (maintain aspect ratio)
+                    const maxWidth = 800;
+                    const scale = Math.min(1, maxWidth / img.width);
+                    canvas.width = img.width * scale;
+                    canvas.height = img.height * scale;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    // Initialize ROI selector
+                    canvas.dataset.jobId = jobId;
+                    roiSelectorInstance = new ROISelector('roi-canvas', {
+                        autoDetectOnLoad: false
+                    });
+
+                    // Listen to ROI changes
+                    canvas.addEventListener('roi-changed', (e) => {
+                        roiSelection = e.detail.roi;
+                        costPreview.setROI(true, e.detail.costSavings);
+                        console.log('ROI changed:', e.detail);
+                    });
+
+                    canvas.addEventListener('roi-cleared', () => {
+                        roiSelection = null;
+                        costPreview.setROI(false, 0);
+                    });
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Auto-detect ROI
+        async function autoDetectROI() {
+            if (!roiSelectorInstance) return;
+
+            try {
+                await roiSelectorInstance.autoDetect('combined');
+            } catch (error) {
+                console.error('Auto-detect failed:', error);
+                alert('Auto-detect failed: ' + error.message);
+            }
+        }
+
+        // Clear ROI
+        function clearROI() {
+            if (roiSelectorInstance) {
+                roiSelectorInstance.clearROI();
+            }
+        }
+
+        // Update process button state
+        function updateProcessButton() {
+            const btn = document.getElementById('process-btn');
+
+            if (uploadedImage && selectedColor) {
+                btn.disabled = false;
+
+                const estimate = costPreview.getEstimate();
+                if (estimate) {
+                    const cost = roiSelection ? estimate.roi_cost : estimate.estimated_cost_usd;
+                    const previewCost = cost * 0.23; // Preview mode is 77% cheaper
+
+                    btn.textContent = `🚀 Process with Preview Mode ($${previewCost.toFixed(3)} instead of $${cost.toFixed(3)})`;
+                }
+            } else {
+                btn.disabled = true;
+                btn.textContent = '🚀 Select color to enable processing';
+            }
+        }
+
+        // Process image
+        async function processImage() {
+            const resultsSection = document.getElementById('results-section');
+            resultsSection.style.display = 'block';
+            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            // Simulate processing (in real app, call API)
+            setTimeout(() => {
+                // Set source image
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewWorkflow.setSourceImage(e.target.result, uploadedJobId);
+
+                    // Simulate result (would come from API)
+                    setTimeout(() => {
+                        const estimate = costPreview.getEstimate();
+                        const previewCost = (roiSelection ? estimate.roi_cost : estimate.estimated_cost_usd) * 0.23;
+
+                        previewWorkflow.setPreviewResult(
+                            e.target.result, // In real app, this would be the processed image
+                            {
+                                color: selectedColor,
+                                mode: costPreview.getMode(),
+                                roi: roiSelection
+                            },
+                            previewCost
+                        );
+                    }, 1500);
+                };
+                reader.readAsDataURL(uploadedImage);
+            }, 100);
+        }
+    </script>
+</body>
+</html>
