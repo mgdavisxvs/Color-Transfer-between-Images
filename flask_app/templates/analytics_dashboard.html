@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Dashboard - Color Transfer System</title>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- Custom CSS -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #2d3748;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .dashboard-container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .dashboard-header {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .dashboard-header h1 {
+            color: #2d3748;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .dashboard-header p {
+            color: #718096;
+            font-size: 1.1rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+
+        .stat-trend {
+            font-size: 0.9rem;
+            color: #48bb78;
+        }
+
+        .stat-trend.negative {
+            color: #f56565;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-card h2 {
+            color: #2d3748;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .chart-container.tall {
+            height: 400px;
+        }
+
+        .workers-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .workers-table th,
+        .workers-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .workers-table th {
+            background: #f7fafc;
+            color: #4a5568;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.05em;
+        }
+
+        .workers-table tr:hover {
+            background: #f7fafc;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .badge-warning {
+            background: #fef3c7;
+            color: #78350f;
+        }
+
+        .badge-danger {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+        }
+
+        .refresh-button {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .refresh-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #718096;
+        }
+
+        .spinner {
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-value {
+                font-size: 2rem;
+            }
+
+            .dashboard-header h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <h1>📊 Analytics Dashboard</h1>
+            <p>Comprehensive performance, cost, and quality metrics</p>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Loading analytics data...</p>
+        </div>
+
+        <!-- Stats Grid -->
+        <div id="stats-grid" class="stats-grid" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-label">Total Operations</div>
+                <div class="stat-value" id="total-operations">0</div>
+                <div class="stat-trend">Last 24 hours</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Average Cost</div>
+                <div class="stat-value" id="avg-cost">$0.00</div>
+                <div class="stat-trend" id="cost-trend">↓ 15% vs yesterday</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Average Energy</div>
+                <div class="stat-value" id="avg-energy">0 Wh</div>
+                <div class="stat-trend">Eco mode adoption</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Processing Time</div>
+                <div class="stat-value" id="avg-time">0.0s</div>
+                <div class="stat-trend" id="time-trend">↑ 8% faster</div>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div id="charts-grid" class="charts-grid" style="display: none;">
+            <!-- Cost Over Time -->
+            <div class="chart-card">
+                <h2>💰 Cost Over Time</h2>
+                <div class="chart-container">
+                    <canvas id="costChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Energy Consumption -->
+            <div class="chart-card">
+                <h2>⚡ Energy Consumption</h2>
+                <div class="chart-container">
+                    <canvas id="energyChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Worker Performance -->
+            <div class="chart-card">
+                <h2>🎯 Worker Performance</h2>
+                <div class="chart-container">
+                    <canvas id="workerChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Processing Time Distribution -->
+            <div class="chart-card">
+                <h2>⏱️ Processing Time Distribution</h2>
+                <div class="chart-container">
+                    <canvas id="timeChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Cost Breakdown -->
+            <div class="chart-card">
+                <h2>📈 Cost Breakdown</h2>
+                <div class="chart-container">
+                    <canvas id="costBreakdownChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Energy Breakdown -->
+            <div class="chart-card">
+                <h2>🔋 Energy Breakdown</h2>
+                <div class="chart-container">
+                    <canvas id="energyBreakdownChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Worker Performance Table -->
+            <div class="chart-card" style="grid-column: 1 / -1;">
+                <h2>👥 Worker Rankings</h2>
+                <table class="workers-table" id="workers-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Worker ID</th>
+                            <th>Weight</th>
+                            <th>Avg Delta E</th>
+                            <th>Reliability</th>
+                            <th>Trend</th>
+                            <th>Performance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="workers-tbody">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Refresh Button -->
+        <button class="refresh-button" onclick="loadDashboardData()">
+            🔄 Refresh Data
+        </button>
+    </div>
+
+    <script>
+        // Chart instances
+        let costChart, energyChart, workerChart, timeChart, costBreakdownChart, energyBreakdownChart;
+
+        // Load dashboard data on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDashboardData();
+            // Auto-refresh every 30 seconds
+            setInterval(loadDashboardData, 30000);
+        });
+
+        async function loadDashboardData() {
+            try {
+                const response = await fetch('/api/analytics/dashboard/overview');
+                const data = await response.json();
+
+                if (!data.success) {
+                    console.error('Failed to load dashboard data:', data.error);
+                    return;
+                }
+
+                // Hide loading, show data
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('stats-grid').style.display = 'grid';
+                document.getElementById('charts-grid').style.display = 'grid';
+
+                // Update stats
+                updateStats(data.overview);
+
+                // Update charts
+                updateCharts(data.overview);
+
+                // Update workers table
+                updateWorkersTable(data.overview.worker_performance);
+
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+            }
+        }
+
+        function updateStats(overview) {
+            const stats = overview.cost_statistics;
+
+            document.getElementById('total-operations').textContent =
+                stats.total_operations.toLocaleString();
+
+            document.getElementById('avg-cost').textContent =
+                `$${stats.average_cost_usd.toFixed(4)}`;
+
+            document.getElementById('avg-energy').textContent =
+                `${stats.average_energy_wh.toFixed(2)} Wh`;
+
+            document.getElementById('avg-time').textContent =
+                `${stats.average_time_seconds.toFixed(2)}s`;
+        }
+
+        function updateCharts(overview) {
+            const recentOps = overview.recent_operations || [];
+
+            // Prepare data
+            const timestamps = recentOps.map(op => new Date(op.timestamp).toLocaleTimeString());
+            const costs = recentOps.map(op => op.cost);
+            const energies = recentOps.map(op => op.energy_wh);
+            const times = recentOps.map(op => op.time);
+
+            // Cost Over Time Chart
+            if (costChart) costChart.destroy();
+            costChart = new Chart(document.getElementById('costChart'), {
+                type: 'line',
+                data: {
+                    labels: timestamps,
+                    datasets: [{
+                        label: 'Cost (USD)',
+                        data: costs,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            // Energy Chart
+            if (energyChart) energyChart.destroy();
+            energyChart = new Chart(document.getElementById('energyChart'), {
+                type: 'line',
+                data: {
+                    labels: timestamps,
+                    datasets: [{
+                        label: 'Energy (Wh)',
+                        data: energies,
+                        borderColor: '#f6ad55',
+                        backgroundColor: 'rgba(246, 173, 85, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            // Worker Performance Chart
+            const workers = overview.worker_performance || [];
+            if (workerChart) workerChart.destroy();
+            workerChart = new Chart(document.getElementById('workerChart'), {
+                type: 'bar',
+                data: {
+                    labels: workers.map(w => w.worker_id.replace('worker_', '')),
+                    datasets: [{
+                        label: 'Weight',
+                        data: workers.map(w => w.weight),
+                        backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                        borderColor: '#667eea',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 1
+                        }
+                    }
+                }
+            });
+
+            // Processing Time Chart
+            if (timeChart) timeChart.destroy();
+            timeChart = new Chart(document.getElementById('timeChart'), {
+                type: 'bar',
+                data: {
+                    labels: timestamps,
+                    datasets: [{
+                        label: 'Time (seconds)',
+                        data: times,
+                        backgroundColor: 'rgba(72, 187, 120, 0.8)',
+                        borderColor: '#48bb78',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            // Cost Breakdown (Pie)
+            if (costBreakdownChart) costBreakdownChart.destroy();
+            costBreakdownChart = new Chart(document.getElementById('costBreakdownChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Energy Cost', 'Compute Cost'],
+                    datasets: [{
+                        data: [60, 40], // Sample data
+                        backgroundColor: ['#667eea', '#f6ad55'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Energy Breakdown (Pie)
+            if (energyBreakdownChart) energyBreakdownChart.destroy();
+            energyBreakdownChart = new Chart(document.getElementById('energyBreakdownChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['GPU', 'CPU', 'Memory'],
+                    datasets: [{
+                        data: [70, 20, 10], // Sample data
+                        backgroundColor: ['#667eea', '#f6ad55', '#48bb78'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateWorkersTable(workers) {
+            const tbody = document.getElementById('workers-tbody');
+            tbody.innerHTML = '';
+
+            workers.forEach((worker, index) => {
+                const row = tbody.insertRow();
+
+                // Rank
+                row.insertCell(0).textContent = `#${index + 1}`;
+
+                // Worker ID
+                row.insertCell(1).textContent = worker.worker_id.replace('worker_', '');
+
+                // Weight
+                const weightCell = row.insertCell(2);
+                weightCell.textContent = worker.weight.toFixed(3);
+
+                // Delta E
+                const deltaECell = row.insertCell(3);
+                deltaECell.textContent = worker.avg_delta_e.toFixed(2);
+
+                // Reliability
+                const reliabilityCell = row.insertCell(4);
+                reliabilityCell.textContent = (worker.reliability * 100).toFixed(1) + '%';
+
+                // Trend
+                const trendCell = row.insertCell(5);
+                const badge = document.createElement('span');
+                badge.className = 'badge';
+
+                if (worker.trend === 'improving') {
+                    badge.classList.add('badge-success');
+                    badge.textContent = '↑ Improving';
+                } else if (worker.trend === 'declining') {
+                    badge.classList.add('badge-danger');
+                    badge.textContent = '↓ Declining';
+                } else {
+                    badge.classList.add('badge-warning');
+                    badge.textContent = '→ Stable';
+                }
+
+                trendCell.appendChild(badge);
+
+                // Performance bar
+                const performanceCell = row.insertCell(6);
+                const progressBar = document.createElement('div');
+                progressBar.className = 'progress-bar';
+                const progressFill = document.createElement('div');
+                progressFill.className = 'progress-fill';
+                progressFill.style.width = (worker.weight * 100) + '%';
+                progressBar.appendChild(progressFill);
+                performanceCell.appendChild(progressBar);
+            });
+        }
+    </script>
+</body>
+</html>
