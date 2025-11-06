@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAL Color Transfer - Precision Color Matching</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .color-swatch {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .color-swatch:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .color-swatch.selected {
+            ring: 3px;
+            ring-color: #3b82f6;
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body class="h-full bg-gray-50">
+    <div class="min-h-full">
+        <!-- Header -->
+        <header class="bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                <h1 class="text-3xl font-bold text-white">RAL Color Transfer</h1>
+                <p class="text-blue-100 mt-2">Precision color matching with ΔE analysis</p>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Tabs -->
+            <div class="border-b border-gray-200 mb-6">
+                <nav class="-mb-px flex space-x-8">
+                    <button onclick="showTab('transfer')" id="tab-transfer" class="tab-button border-b-2 border-blue-500 py-4 px-1 text-sm font-medium text-blue-600">
+                        Color Transfer
+                    </button>
+                    <button onclick="showTab('palette')" id="tab-palette" class="tab-button border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        RAL Palette
+                    </button>
+                    <button onclick="showTab('delta-e')" id="tab-delta-e" class="tab-button border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        ΔE Calculator
+                    </button>
+                    <button onclick="showTab('batch')" id="tab-batch" class="tab-button border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        Batch Processing
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Tab: Color Transfer -->
+            <div id="content-transfer" class="tab-content">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Left: Upload & Controls -->
+                    <div class="space-y-6">
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h2 class="text-xl font-semibold mb-4">1. Upload Source Image</h2>
+                            <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                                <input type="file" id="source-upload" accept="image/*" class="hidden" onchange="handleSourceUpload(event)">
+                                <label for="source-upload" class="cursor-pointer">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                                    </svg>
+                                    <p class="mt-2 text-sm text-gray-600">Click to upload image</p>
+                                    <p class="mt-1 text-xs text-gray-500">PNG, JPG, BMP up to 50MB</p>
+                                </label>
+                            </div>
+                            <div id="source-preview" class="mt-4 hidden">
+                                <img id="source-image" class="w-full rounded-lg" alt="Source preview">
+                                <p id="source-info" class="mt-2 text-sm text-gray-600"></p>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h2 class="text-xl font-semibold mb-4">2. Select Target RAL Color</h2>
+                            <div class="mb-4">
+                                <input type="text" id="ral-search" placeholder="Search RAL colors..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" oninput="searchRALColors()">
+                            </div>
+                            <div id="ral-palette-grid" class="grid grid-cols-8 gap-2 max-h-96 overflow-y-auto">
+                                <!-- Color swatches will be populated here -->
+                            </div>
+                            <div id="selected-ral-info" class="mt-4 hidden">
+                                <div class="flex items-center space-x-4">
+                                    <div id="selected-swatch" class="w-16 h-16 rounded-lg shadow"></div>
+                                    <div>
+                                        <p class="font-semibold" id="selected-code"></p>
+                                        <p class="text-sm text-gray-600" id="selected-name"></p>
+                                        <p class="text-xs text-gray-500" id="selected-rgb"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h2 class="text-xl font-semibold mb-4">3. Process Options</h2>
+                            <div class="space-y-4">
+                                <label class="flex items-center space-x-2">
+                                    <input type="checkbox" id="downsample-check" checked class="rounded text-blue-600">
+                                    <span class="text-sm text-gray-700">Downsample for faster processing</span>
+                                </label>
+                                <label class="flex items-center space-x-2">
+                                    <input type="checkbox" id="heatmap-check" checked class="rounded text-blue-600">
+                                    <span class="text-sm text-gray-700">Generate ΔE heatmap</span>
+                                </label>
+                            </div>
+                            <button onclick="processColorTransfer()" id="process-btn" class="mt-6 w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400" disabled>
+                                Process Color Transfer
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Right: Results -->
+                    <div class="space-y-6">
+                        <div id="processing-indicator" class="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center hidden">
+                            <svg class="animate-spin h-8 w-8 text-blue-600 mx-auto" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <p class="mt-4 text-blue-700 font-medium">Processing color transfer...</p>
+                        </div>
+
+                        <div id="results-container" class="hidden space-y-6">
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <h2 class="text-xl font-semibold mb-4">Result</h2>
+                                <img id="result-image" class="w-full rounded-lg" alt="Result">
+                                <div class="mt-4 flex space-x-2">
+                                    <button onclick="downloadResult()" class="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700">
+                                        Download Image
+                                    </button>
+                                    <button onclick="toggleHeatmap()" id="heatmap-toggle" class="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700">
+                                        Show Heatmap
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <h2 class="text-xl font-semibold mb-4">Quality Control Report</h2>
+                                <div id="qc-summary" class="space-y-3">
+                                    <!-- QC summary will be populated here -->
+                                </div>
+                                <div class="mt-4 flex space-x-2">
+                                    <button onclick="downloadQCReport('json')" class="flex-1 bg-gray-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-700">
+                                        Download JSON
+                                    </button>
+                                    <button onclick="downloadQCReport('csv')" class="flex-1 bg-gray-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-700">
+                                        Download CSV
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: RAL Palette -->
+            <div id="content-palette" class="tab-content hidden">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-2xl font-semibold mb-6">RAL Color Palette</h2>
+                    <div class="mb-4">
+                        <input type="text" id="palette-search" placeholder="Search by name or code..." class="w-full px-4 py-2 border border-gray-300 rounded-lg" oninput="filterPalette()">
+                    </div>
+                    <div id="full-palette-grid" class="grid grid-cols-6 md:grid-cols-10 lg:grid-cols-15 gap-3">
+                        <!-- Full palette will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: ΔE Calculator -->
+            <div id="content-delta-e" class="tab-content hidden">
+                <div class="max-w-2xl mx-auto bg-white rounded-lg shadow p-8">
+                    <h2 class="text-2xl font-semibold mb-6">Delta E (ΔE) Calculator</h2>
+                    <div class="grid grid-cols-2 gap-8 mb-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Color 1</label>
+                            <input type="color" id="color1-picker" class="w-full h-20 rounded-lg cursor-pointer" value="#ff0000" onchange="calculateDeltaE()">
+                            <input type="text" id="color1-rgb" placeholder="RGB: 255, 0, 0" class="mt-2 w-full px-3 py-2 border rounded-lg text-sm" onchange="updateFromRGB(1)">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Color 2</label>
+                            <input type="color" id="color2-picker" class="w-full h-20 rounded-lg cursor-pointer" value="#0000ff" onchange="calculateDeltaE()">
+                            <input type="text" id="color2-rgb" placeholder="RGB: 0, 0, 255" class="mt-2 w-full px-3 py-2 border rounded-lg text-sm" onchange="updateFromRGB(2)">
+                        </div>
+                    </div>
+                    <div id="delta-e-result" class="bg-gray-50 rounded-lg p-6 text-center">
+                        <p class="text-5xl font-bold text-gray-900 mb-2">-</p>
+                        <p class="text-sm text-gray-600">ΔE (CIEDE2000)</p>
+                        <p id="delta-e-interpretation" class="mt-3 text-sm text-gray-700"></p>
+                    </div>
+                    <div class="mt-6 text-sm text-gray-600">
+                        <p class="font-semibold mb-2">ΔE Interpretation:</p>
+                        <ul class="space-y-1">
+                            <li>• &lt; 1: Imperceptible difference</li>
+                            <li>• 1-2: Perceptible through close observation</li>
+                            <li>• 2-10: Perceptible at a glance</li>
+                            <li>• 10-50: Colors are different</li>
+                            <li>• &gt; 50: Completely different colors</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Batch Processing -->
+            <div id="content-batch" class="tab-content hidden">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-2xl font-semibold mb-6">Batch Processing</h2>
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
+                        <input type="file" id="batch-upload" accept=".zip" class="hidden" onchange="handleBatchUpload(event)">
+                        <label for="batch-upload" class="cursor-pointer">
+                            <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                            <p class="mt-4 text-lg text-gray-600">Upload ZIP file with images</p>
+                            <p class="mt-2 text-sm text-gray-500">All images will be processed with selected RAL color</p>
+                        </label>
+                    </div>
+                    <div id="batch-progress" class="mt-6 hidden">
+                        <div class="bg-blue-50 rounded-lg p-4">
+                            <p class="text-sm font-medium text-blue-900">Processing batch...</p>
+                            <div class="mt-2 bg-blue-200 rounded-full h-2">
+                                <div id="batch-progress-bar" class="bg-blue-600 h-2 rounded-full transition-all" style="width: 0%"></div>
+                            </div>
+                            <p id="batch-status" class="mt-2 text-xs text-blue-700"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Global state
+        let state = {
+            sourceJobId: null,
+            resultJobId: null,
+            selectedRAL: null,
+            showingHeatmap: false,
+            ralColors: []
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadRALPalette();
+        });
+
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-button').forEach(el => {
+                el.classList.remove('border-blue-500', 'text-blue-600');
+                el.classList.add('border-transparent', 'text-gray-500');
+            });
+
+            // Show selected tab
+            document.getElementById(`content-${tabName}`).classList.remove('hidden');
+            const btn = document.getElementById(`tab-${tabName}`);
+            btn.classList.remove('border-transparent', 'text-gray-500');
+            btn.classList.add('border-blue-500', 'text-blue-600');
+        }
+
+        async function loadRALPalette() {
+            const response = await fetch('/api/palette');
+            const data = await response.json();
+            state.ralColors = data.colors;
+            renderRALPalette(data.colors, 'ral-palette-grid');
+            renderRALPalette(data.colors, 'full-palette-grid', true);
+        }
+
+        function renderRALPalette(colors, containerId, showLabels = false) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = colors.map(color => `
+                <div class="color-swatch cursor-pointer rounded shadow hover:shadow-lg"
+                     style="background-color: ${color.hex}; ${showLabels ? 'height: 80px' : 'height: 40px'}"
+                     onclick="selectRALColor('${color.code}')"
+                     title="${color.code} - ${color.name}">
+                    ${showLabels ? `<div class="text-xs text-center pt-16 px-1 font-mono">${color.code.split(' ')[1]}</div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function selectRALColor(code) {
+            const color = state.ralColors.find(c => c.code === code);
+            if (!color) return;
+
+            state.selectedRAL = color;
+
+            // Update selection
+            document.querySelectorAll('.color-swatch').forEach(el => el.classList.remove('selected'));
+            event.target.classList.add('selected');
+
+            // Show info
+            document.getElementById('selected-ral-info').classList.remove('hidden');
+            document.getElementById('selected-swatch').style.backgroundColor = color.hex;
+            document.getElementById('selected-code').textContent = color.code;
+            document.getElementById('selected-name').textContent = color.name;
+            document.getElementById('selected-rgb').textContent = `RGB: ${color.rgb.join(', ')}`;
+
+            // Enable process button if source uploaded
+            if (state.sourceJobId) {
+                document.getElementById('process-btn').disabled = false;
+            }
+        }
+
+        async function handleSourceUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                state.sourceJobId = data.job_id;
+
+                // Show preview
+                document.getElementById('source-preview').classList.remove('hidden');
+                document.getElementById('source-image').src = `/api/preview/${data.job_id}`;
+                document.getElementById('source-info').textContent =
+                    `${data.filename} - ${data.dimensions.width} × ${data.dimensions.height}`;
+
+                // Enable process button if RAL selected
+                if (state.selectedRAL) {
+                    document.getElementById('process-btn').disabled = false;
+                }
+            }
+        }
+
+        async function processColorTransfer() {
+            if (!state.sourceJobId || !state.selectedRAL) return;
+
+            document.getElementById('processing-indicator').classList.remove('hidden');
+            document.getElementById('results-container').classList.add('hidden');
+
+            const response = await fetch('/api/process/reinhard', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    job_id: state.sourceJobId,
+                    target_ral_code: state.selectedRAL.code,
+                    downsample: document.getElementById('downsample-check').checked
+                })
+            });
+
+            const data = await response.json();
+            document.getElementById('processing-indicator').classList.add('hidden');
+
+            if (data.success) {
+                state.resultJobId = data.result_job_id;
+                state.showingHeatmap = false;
+
+                // Show results
+                document.getElementById('results-container').classList.remove('hidden');
+                document.getElementById('result-image').src = `/api/preview/${data.result_job_id}`;
+
+                // Show QC report
+                displayQCReport(data.qc_report);
+            }
+        }
+
+        function displayQCReport(qc) {
+            const container = document.getElementById('qc-summary');
+            const passed = qc.passed;
+
+            container.innerHTML = `
+                <div class="flex items-center space-x-2">
+                    <div class="w-3 h-3 rounded-full ${passed ? 'bg-green-500' : 'bg-red-500'}"></div>
+                    <span class="font-semibold">${passed ? 'PASSED' : 'FAILED'} QC</span>
+                </div>
+                <div class="grid grid-cols-2 gap-4 mt-4">
+                    <div>
+                        <p class="text-sm text-gray-600">Mean ΔE</p>
+                        <p class="text-xl font-bold">${qc.delta_e_statistics.mean.toFixed(2)}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Max ΔE</p>
+                        <p class="text-xl font-bold">${qc.delta_e_statistics.max.toFixed(2)}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Acceptance Rate</p>
+                        <p class="text-xl font-bold">${qc.acceptance_rate.toFixed(1)}%</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Threshold</p>
+                        <p class="text-xl font-bold">${qc.threshold}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleHeatmap() {
+            state.showingHeatmap = !state.showingHeatmap;
+            const img = document.getElementById('result-image');
+            const btn = document.getElementById('heatmap-toggle');
+
+            if (state.showingHeatmap) {
+                img.src = `/api/download/${state.resultJobId}_heatmap.png`;
+                btn.textContent = 'Show Result';
+            } else {
+                img.src = `/api/preview/${state.resultJobId}`;
+                btn.textContent = 'Show Heatmap';
+            }
+        }
+
+        function downloadResult() {
+            window.open(`/api/download/${state.resultJobId}.png`, '_blank');
+        }
+
+        function downloadQCReport(format) {
+            window.open(`/api/download/${state.resultJobId}_qc.${format}`, '_blank');
+        }
+
+        async function calculateDeltaE() {
+            const color1 = hexToRgb(document.getElementById('color1-picker').value);
+            const color2 = hexToRgb(document.getElementById('color2-picker').value);
+
+            document.getElementById('color1-rgb').value = `${color1.join(', ')}`;
+            document.getElementById('color2-rgb').value = `${color2.join(', ')}`;
+
+            const response = await fetch('/api/delta-e/compute', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    color1_rgb: color1,
+                    color2_rgb: color2
+                })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                document.querySelector('#delta-e-result p:first-child').textContent = data.delta_e.toFixed(2);
+                document.getElementById('delta-e-interpretation').textContent = data.interpretation;
+            }
+        }
+
+        function hexToRgb(hex) {
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return [r, g, b];
+        }
+
+        function searchRALColors() {
+            const query = document.getElementById('ral-search').value.toLowerCase();
+            const filtered = state.ralColors.filter(c =>
+                c.name.toLowerCase().includes(query) || c.code.toLowerCase().includes(query)
+            );
+            renderRALPalette(filtered, 'ral-palette-grid');
+        }
+
+        function filterPalette() {
+            const query = document.getElementById('palette-search').value.toLowerCase();
+            const filtered = state.ralColors.filter(c =>
+                c.name.toLowerCase().includes(query) || c.code.toLowerCase().includes(query)
+            );
+            renderRALPalette(filtered, 'full-palette-grid', true);
+        }
+
+        async function handleBatchUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('/api/batch/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                alert(`Uploaded ${data.total} images for batch processing`);
+                // TODO: Implement batch processing UI
+            }
+        }
+    </script>
+</body>
+</html>

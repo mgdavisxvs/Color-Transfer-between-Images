@@ -1,0 +1,42 @@
+# Flask Color Transfer App - Dependencies
+# Python 3.8+ required
+
+# Core Flask dependencies
+Flask>=3.0.0,<4.0.0
+Werkzeug>=3.0.0,<4.0.0
+
+# Security & Performance
+Flask-WTF>=1.2.0,<2.0.0           # CSRF protection
+Flask-Limiter>=3.5.0,<4.0.0       # Rate limiting
+Flask-Caching>=2.1.0,<3.0.0       # Caching support
+Flask-Session>=0.5.0,<1.0.0       # Session management
+
+# Image processing
+numpy>=1.24.0,<2.3.0
+opencv-python>=4.8.0,<5.0.0
+Pillow>=10.0.0,<11.0.0
+
+# Color science
+scikit-image>=0.21.0,<1.0.0
+colorspacious>=1.1.2,<2.0.0
+
+# Async processing (optional)
+celery>=5.3.0,<6.0.0
+redis>=5.0.0,<6.0.0
+
+# File handling (optional)
+python-magic>=0.4.27,<1.0.0
+
+# Data handling
+pandas>=2.0.0,<3.0.0
+
+# Development & Testing
+pytest>=7.4.0,<8.0.0
+pytest-cov>=4.1.0,<5.0.0
+pytest-flask>=1.3.0,<2.0.0
+black>=23.7.0,<24.0.0
+flake8>=6.1.0,<7.0.0
+
+# API Documentation (optional)
+flask-swagger-ui>=4.11.1,<5.0.0
+flasgger>=0.9.7,<1.0.0
